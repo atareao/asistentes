@@ -30,6 +30,14 @@ class IbexException(Exception):
 
 
 class Ibex:
+    """
+    Obtiene los datos del Ibex 35
+    Url: https://bolsarama.es/acciones/ibex35
+
+    Attributes
+    ----------
+    headers : Encabezados
+    """
     url = "https://bolsarama.es/acciones/ibex35"
 
     def __init__(self) -> None:
