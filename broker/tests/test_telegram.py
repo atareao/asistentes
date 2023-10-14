@@ -24,8 +24,7 @@
 
 import os
 from dotenv import load_dotenv
-
-from telegram import Bot
+from broker.telegram import Bot
 
 
 class TestTelegramBot:
