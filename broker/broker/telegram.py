@@ -28,24 +28,21 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-CURDIR = os.path.realpath(os.path.dirname(__file__))
-CONFIG = os.path.join(CURDIR, "config.json")
 
-
-class ExceptionBot(Exception):
+class ExceptionTelegram(Exception):
     pass
 
 
-class Bot:
-    """A Telegram Bot"""
+class TelegramClient:
+    """A Telegram Client"""
 
-    def __init__(self, token: str, update_timeout: int = 120) -> None:
-        """Init the bot
+    def __init__(self, token: str) -> None:
+        """Init the client
 
         Parameters
         ----------
         token : str
-            Token of the bot
+            Token of the client
         update_offset : int
             First uptate to get
         update_timeout : int
@@ -54,36 +51,19 @@ class Bot:
         logger.debug("__init__")
         self._url = f"https://api.telegram.org/bot{token}"
         self._session = requests.Session()
-        self._update_timeout = update_timeout
-        self._read_config()
-
-    def _read_config(self) -> None:
-        if os.path.exists(CONFIG):
-            with open(CONFIG, "r") as fr:
-                config = json.load(fr)
-                self._update_offset = config["offset"]
-        else:
-            self._update_offset = 0
-
-    def _save_config(self) -> None:
-        with open(CONFIG, "w") as fw:
-            config = {
-                "offset": self._update_offset
-            }
-            json.dump(config, fw)
 
     def get_me(self) -> dict:
-        """Get info about the bot
+        """Get info about the client
 
         Returns
         -------
         dict
-            Info about the bot
+            Info about the client
         """
-        logger.info("get_me")
+        logger.debug("get_me")
         return self._get("getMe")
 
-    def get_updates(self) -> dict:
+    def get_updates(self, offset, timeout) -> dict:
         """Get updates
 
         Returns
@@ -91,17 +71,13 @@ class Bot:
         dict
             Updates
         """
-        logger.info("get_updates")
+        logger.debug("get_updates")
         params = {
-            "offset": self._update_offset,
-            "timeout": self._update_timeout
+            "offset": offset,
+            "timeout": timeout
         }
         response = self._get("getUpdates", params)
         logger.debug(f"Response: {response}")
-        if response["ok"] and response["result"]:
-            offset = max([item["update_id"] for item in response["result"]])
-            self._update_offset = offset + 1
-            self._save_config()
         return response
 
     def send_message(self, text: str, chat_id: int,
@@ -122,7 +98,7 @@ class Bot:
         dict
             The response
         """
-        logger.info("send_message")
+        logger.debug("send_message")
         data = {
             "chat_id": chat_id,
             "text": text
@@ -146,14 +122,14 @@ class Bot:
         dict
             Response from Telegram
         """
-        logger.info("_get")
+        logger.debug("_get")
         logger.debug(f"endpoint: {endpoint}")
         logger.debug(f"params: {params}")
         url = f"{self._url}/{endpoint}"
         response = self._session.get(url, params=params)
         if response.status_code != 200:
             msg = f"Error HTTP {response.status_code}. {response.text}"
-            raise ExceptionBot(msg)
+            raise ExceptionTelegram(msg)
         return response.json()
 
     def _post(self, endpoint: str, data: dict = {}) -> dict:
@@ -171,12 +147,12 @@ class Bot:
         dict
             Response from Telegram
         """
-        logger.info("_post")
+        logger.debug("_post")
         logger.debug(f"endpoint: {endpoint}")
         logger.debug(f"data: {data}")
         url = f"{self._url}/{endpoint}"
         response = self._session.get(url, json=data)
         if response.status_code != 200:
             msg = f"Error HTTP {response.status_code}. {response.text}"
-            raise ExceptionBot(msg)
+            raise ExceptionTelegram(msg)
         return response.json()

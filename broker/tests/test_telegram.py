@@ -24,10 +24,10 @@
 
 import os
 from dotenv import load_dotenv
-from broker.telegram import Bot
+from broker.telegram import TelegramClient
 
 
-class TestTelegramBot:
+class TestTelegramClient:
 
     @classmethod
     def setup_class(cls):
@@ -35,17 +35,17 @@ class TestTelegramBot:
         token = os.getenv("TOKEN", "")
         cls.chat_id = int(os.getenv("CHAT_ID", 0))
         update_offset = 0
-        cls.bot = Bot(token, update_offset)
+        cls.telegram_client = TelegramClient(token, update_offset)
 
     def test_get_me(self):
-        response = self.bot.get_me()
+        response = self.telegram_client.get_me()
         assert response is not None
 
     def test_get_updates(self):
-        response = self.bot.get_updates()
+        response = self.telegram_client.get_updates()
         assert response is not None
 
     def test_send_message(self):
         text = "Este es un mensaje de prueba"
-        response = self.bot.send_message(text, self.chat_id)
+        response = self.telegram_client.send_message(text, self.chat_id)
         assert response is not None
