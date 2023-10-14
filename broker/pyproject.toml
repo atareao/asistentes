@@ -10,6 +10,7 @@ python = "^3.11"
 requests = "^2.31.0"
 lxml = "^4.9.3"
 cssselect = "^1.2.0"
+python-dotenv = "^1.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
