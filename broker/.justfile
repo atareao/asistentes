@@ -2,4 +2,4 @@ default:
     just --list
 
 test:
-    poetry run pytest
+    poetry run pytest -s
