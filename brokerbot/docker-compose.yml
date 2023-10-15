@@ -1,8 +1,8 @@
-version: "3"
+version: "3.7"
 
 services:
-  expulsabot:
-    image: atareao/brokerbot:v0.1.0
+  brokerbot:
+    image: atareao/brokerbot:latest
     container_name: brokerbot
     init: true
     restart: unless-stopped
