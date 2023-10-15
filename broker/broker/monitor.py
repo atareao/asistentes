@@ -49,6 +49,9 @@ class Monitor(Thread):
         self._decrement = 100
         self._chat_id = None
 
+    def get_data(self):
+        return self._data.items()
+
     def set_chat_id(self, chat_id):
         logger.debug("set_chat_id")
         self._chat_id = chat_id

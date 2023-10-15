@@ -82,7 +82,9 @@ class Bot:
                     self._monitor.set_chat_id(chat_id)
                 text = message["message"]["text"]
                 logger.debug(f"Text: {text}")
-                if text.startswith("/list"):
+                if text.startswith("/help"):
+                    self.process_help(message)
+                elif text.startswith("/list"):
                     self.process_list(message)
                 elif text.startswith("/get"):
                     self.process_get(message)
@@ -92,6 +94,8 @@ class Bot:
                     self.process_max(message)
                 elif text.startswith("/min"):
                     self.process_min(message)
+                elif text.startswith("/configuration"):
+                    self.process_configuration(message)
                 elif text.startswith("/"):
                     command = text.split(" ")[0]
                     msg = f"The command {command} is not implemented"
@@ -100,6 +104,32 @@ class Bot:
                 if chat_id:
                     self._telegram_client.send_message(str(exception), chat_id)
 
+    def process_help(self, message):
+        chat_id = message["message"]["chat"]["id"]
+        items = []
+        items.append("/help 👉 show this help")
+        items.append("/list 👉 list Ibex 35 values")
+        items.append("/get 👉 get a value (/get <action>)")
+        items.append(
+                "/max 👉 set max value for action (/max <action>,<value>)")
+        items.append(
+                "/min 👉 set min value for action (/min <action>,<value>)")
+        items.append(
+                "/configuration 👉 show max and min values configurated")
+        self._telegram_client.send_message("\n".join(items), chat_id)
+
+    def process_configuration(self, message):
+        chat_id = message["message"]["chat"]["id"]
+        data = self._monitor.get_data()
+        if data:
+            msg = "\n".join([f"{name} 👉 Max: {values['max']}, Min: {values['min']}" for name, values in data])
+            self._telegram_client.send_message(msg, chat_id)
+        else:
+            msg = "There is no max and min values configurated"
+            raise BotException(msg)
+
+
+
     def process_warning(self, message):
         logger.debug("process_warning")
         chat_id = message["message"]["chat"]["id"]
@@ -107,24 +137,30 @@ class Bot:
 
     def process_min(self, message):
         logger.debug("process_min")
+        chat_id = message["message"]["chat"]["id"]
         text = message["message"]["text"]
         items = text.split(" ")
         if len(items) > 1 and items[1].find(",") > 0:
             name, value = items[1].split(",")
             value = float(value.strip())
             self._monitor.set_min(name, value)
+            msg = f"Configured min value for {name} ({value})"
+            self._telegram_client.send_message(msg, chat_id)
         else:
             msg = "Name and value are mandatories. Set as 'name,value'"
             raise BotException(msg)
 
     def process_max(self, message):
         logger.debug("process_max")
+        chat_id = message["message"]["chat"]["id"]
         text = message["message"]["text"]
         items = text.split(" ")
         if len(items) > 1 and items[1].find(",") > 0:
             name, value = items[1].split(",")
             value = float(value.strip())
             self._monitor.set_max(name, value)
+            msg = f"Configured max value for {name} ({value})"
+            self._telegram_client.send_message(msg, chat_id)
         else:
             msg = "Name and value are mandatories. Set as 'name,value'"
             raise BotException(msg)
