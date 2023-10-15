@@ -25,7 +25,6 @@ import json
 import logging
 import os
 from telegram import TelegramClient
-from expansion import Expansion
 
 logger = logging.getLogger(__name__)
 
@@ -33,17 +32,20 @@ CURDIR = os.path.realpath(os.path.dirname(__file__))
 CONFIG = os.path.join(CURDIR, "config.json")
 
 
-class ExceptionBot(Exception):
+class BotException(Exception):
     pass
 
 
 class Bot:
-    def __init__(self, token, pool_time=300):
+    def __init__(self, token, monitor, pool_time=300):
+        logger.debug("__init__")
         self._pool_time = pool_time
         self._telegram_client = TelegramClient(token)
+        self._monitor = monitor
         self._read_config()
 
     def _read_config(self) -> None:
+        logger.debug("_read_config")
         if os.path.exists(CONFIG):
             with open(CONFIG, "r") as fr:
                 config = json.load(fr)
@@ -52,6 +54,7 @@ class Bot:
             self._offset = 0
 
     def _save_config(self) -> None:
+        logger.debug("_save_config")
         with open(CONFIG, "w") as fw:
             config = {
                 "offset": self._offset
@@ -59,6 +62,7 @@ class Bot:
             json.dump(config, fw)
 
     def get_updates(self):
+        logger.debug("get_updates")
         response = self._telegram_client.get_updates(self._offset,
                                                      self._pool_time)
         if response["ok"] and response["result"]:
@@ -68,41 +72,88 @@ class Bot:
             self._process_response(response)
 
     def _process_response(self, response):
+        logger.debug("_process_response")
+        chat_id = None
         for message in response["result"]:
-            logger.debug(f"Message: {message}")
-            text = message["message"]["text"]
-            logger.debug(f"Text: {text}")
-            if text == "/list":
-                self.process_list(message)
-            elif text.startswith("/get"):
-                self.process_get(message)
+            try:
+                logger.debug(f"Message: {message}")
+                chat_id = message["message"]["chat"]["id"]
+                if self._monitor.get_chat_id() is None:
+                    self._monitor.set_chat_id(chat_id)
+                text = message["message"]["text"]
+                logger.debug(f"Text: {text}")
+                if text.startswith("/list"):
+                    self.process_list(message)
+                elif text.startswith("/get"):
+                    self.process_get(message)
+                elif text.startswith("/warning"):
+                    self.process_warning(message)
+                elif text.startswith("/max"):
+                    self.process_max(message)
+                elif text.startswith("/min"):
+                    self.process_min(message)
+                elif text.startswith("/"):
+                    command = text.split(" ")[0]
+                    msg = f"The command {command} is not implemented"
+                    raise BotException(msg)
+            except Exception as exception:
+                if chat_id:
+                    self._telegram_client.send_message(str(exception), chat_id)
+
+    def process_warning(self, message):
+        logger.debug("process_warning")
+        chat_id = message["message"]["chat"]["id"]
+        self._monitor.set_chat_id(chat_id)
+
+    def process_min(self, message):
+        logger.debug("process_min")
+        text = message["message"]["text"]
+        items = text.split(" ")
+        if len(items) > 1 and items[1].find(",") > 0:
+            name, value = items[1].split(",")
+            value = float(value.strip())
+            self._monitor.set_min(name, value)
+        else:
+            msg = "Name and value are mandatories. Set as 'name,value'"
+            raise BotException(msg)
+
+    def process_max(self, message):
+        logger.debug("process_max")
+        text = message["message"]["text"]
+        items = text.split(" ")
+        if len(items) > 1 and items[1].find(",") > 0:
+            name, value = items[1].split(",")
+            value = float(value.strip())
+            self._monitor.set_max(name, value)
+        else:
+            msg = "Name and value are mandatories. Set as 'name,value'"
+            raise BotException(msg)
 
     def process_list(self, message):
+        logger.debug("process_list")
         chat_id = message["message"]["chat"]["id"]
-        expansion = Expansion()
         response = ""
-        values = expansion.get()
-        logger.debug(f"Data: {values}")
-        response = "\n".join([f"{item['name']}: {item['value']}"
-                              for item in values])
+        data = self._monitor.get_current_data()
+        logger.debug(f"Data: {data}")
+        response = "\n".join([f"{name}: {value}"
+                              for name, value in data.items()])
         self._telegram_client.send_message(response, chat_id=chat_id)
 
     def process_get(self, message):
+        logger.debug("process_get")
         response = None
         text = message["message"]["text"]
         chat_id = message["message"]["chat"]["id"]
         items = text.split(" ")
         if len(items) > 1:
-            name = items[1]
-            expansion = Expansion()
-            values = expansion.get()
-            for value in values:
-                if name.lower() == value["name"].lower():
-                    response = f"Valor para {name}: {value['value']}"
+            name = items[1].title()
+            data = self._monitor.get_current_data()
+            if name in data.keys():
+                response = f"Valor para {name}: {data[name]}"
             if response is None:
-                response = f"Error: no encontrado este valor para {name}"
+                msg = f"Error: no encontrado este valor para {name}"
+                raise BotException(msg)
         else:
-            response = "Error: tienes que proporcionar un nombre"
+            msg = "Error: tienes que proporcionar un nombre"
+            raise BotException(msg)
         self._telegram_client.send_message(response, chat_id=chat_id)
-
-

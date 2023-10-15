@@ -26,10 +26,12 @@ import os
 import sys
 from bot import Bot
 from dotenv import load_dotenv
+from monitor import Monitor
 
 logging.basicConfig(
         stream=sys.stdout,
-        level=logging.DEBUG
+        level=logging.DEBUG,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         )
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,9 @@ logger = logging.getLogger(__name__)
 def main():
     load_dotenv()
     token = os.getenv("TOKEN", "")
-    bot = Bot(token)
+    monitor = Monitor(token)
+    monitor.start()
+    bot = Bot(token, monitor)
     logger.debug("main")
     while True:
         bot.get_updates()
