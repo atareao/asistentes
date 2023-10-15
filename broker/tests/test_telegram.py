@@ -34,15 +34,16 @@ class TestTelegramClient:
         load_dotenv()
         token = os.getenv("TOKEN", "")
         cls.chat_id = int(os.getenv("CHAT_ID", 0))
-        update_offset = 0
-        cls.telegram_client = TelegramClient(token, update_offset)
+        cls.telegram_client = TelegramClient(token)
 
     def test_get_me(self):
         response = self.telegram_client.get_me()
         assert response is not None
 
     def test_get_updates(self):
-        response = self.telegram_client.get_updates()
+        offset = 0
+        timeout = 0
+        response = self.telegram_client.get_updates(offset, timeout)
         assert response is not None
 
     def test_send_message(self):
