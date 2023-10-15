@@ -67,7 +67,7 @@ class Expansion:
     @staticmethod
     def process(content):
         logger.debug("process")
-        data = []
+        data = {}
         root = lxml.html.fromstring(content)
         rows = root.cssselect(r"table#listado_valores tbody tr")
         lxml.html.tostring(rows[0])
@@ -76,5 +76,5 @@ class Expansion:
             name = th.text.title()
             td = row.cssselect("td")[1]
             value = float(td.text.replace(",", "."))
-            data.append({"name": name, "value": value})
+            data[name] = value
         return data
