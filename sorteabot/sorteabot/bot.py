@@ -140,7 +140,7 @@ class Bot:
             "message_thread_id" in message["message"] else 0
         username = user["username"] if "username" in user else None
         first_name = user["first_name"] if "first_name" in user else ""
-        last_name = user["last_name"] if "first_name" in user else ""
+        last_name = user["last_name"] if "last_name" in user else ""
         alias = f"@{username}" if username else f"{first_name} {last_name}"
         if user["is_bot"]:
             message = f"`{alias}`, lo siento, los bot no pueden participar"
@@ -162,7 +162,7 @@ class Bot:
             "message_thread_id" in message["message"] else 0
         username = user["username"] if "username" in user else None
         first_name = user["first_name"] if "first_name" in user else ""
-        last_name = user["last_name"] if "first_name" in user else ""
+        last_name = user["last_name"] if "last_name" in user else ""
         alias = f"@{username}" if username else f"{first_name} {last_name}"
         if user["is_bot"]:
             message = f"`{alias}`, lo siento, los bot no pueden participar"
@@ -184,7 +184,7 @@ class Bot:
             "message_thread_id" in message["message"] else 0
         username = user["username"] if "username" in user else None
         first_name = user["first_name"] if "first_name" in user else ""
-        last_name = user["last_name"] if "first_name" in user else ""
+        last_name = user["last_name"] if "last_name" in user else ""
         alias = f"@{username}" if username else f"{first_name} {last_name}"
         response = self._telegram_client.get_administrators(chat_id)
         admin_ids = [user["user"]["id"] for user in response["result"]]
@@ -198,5 +198,5 @@ class Bot:
             logger.debug(f"Seleccionado: {seleccionado}")
             message = f"El premiado es {seleccionado}"
         else:
-            message = f"`{alias}`, solo los administradores pueden sortear!!!"
+            message = f"{alias}, solo los admin puendesortear! 😜"
         self._telegram_client.send_message(message, chat_id, thread_id)
