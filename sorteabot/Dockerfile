@@ -48,7 +48,7 @@ RUN echo "**** install Python ****" && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
-COPY run.sh ./mementobot /app/
+COPY run.sh ./sorteabot /app/
 
 RUN adduser \
     --disabled-password \

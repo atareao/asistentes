@@ -86,15 +86,17 @@ class Bot:
         thread_id = 0
         for message in response["result"]:
             try:
-                logger.debug(f"Message: {message}")
                 chat_id = message["message"]["chat"]["id"]
                 thread_id = message["message"]["message_thread_id"] if \
                     "message_thread_id" in message["message"] else 0
-                if chat_id != self._chat_id or thread_id != self._thread_id:
+                if chat_id != self._chat_id or \
+                        thread_id != self._thread_id or \
+                        "text" not in message["message"]:
                     logger.debug(f"{chat_id} <=> {self._chat_id}")
                     logger.debug(f"{thread_id} <=> {self._thread_id}")
                     logger.debug("Me salgo")
                     return
+                logger.debug(f"Message: {message}")
                 text = message["message"]["text"]
                 logger.debug(f"Text: {text}")
                 if text.startswith("/help") or text.startswith("/ayuda"):
