@@ -39,9 +39,11 @@ logger = logging.getLogger(__name__)
 def main():
     load_dotenv()
     token = os.getenv("TOKEN", "")
+    chat_id = os.getenv("CHAT_ID", "")
+    thread_id = os.getenv("THREAD_ID", "")
     database = os.getenv("DATABASE", "database.db")
     register = Register(database)
-    bot = Bot(token, register)
+    bot = Bot(token, chat_id, thread_id, register)
     logger.debug("main")
     while True:
         bot.get_updates()

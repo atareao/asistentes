@@ -116,9 +116,13 @@ class Register:
             sql = ("INSERT INTO participantes (id, is_bot, first_name,"
                    " last_name, username, language_code, chat_id, timestamp,"
                    " premiado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-            data = (user["id"], user["is_bot"], user["first_name"],
-                    user["last_name"], user["username"], user["language_code"],
-                    chat["id"], timestamp, False,)
+            username = user["username"] if "username" in user else ""
+            first_name = user["first_name"] if "first_name" in user else ""
+            last_name = user["last_name"] if "last_name" in user else ""
+            language_code = user["language_code"] if "language_code" in user \
+                else ""
+            data = (user["id"], user["is_bot"], first_name, last_name,
+                    username, language_code, chat["id"], timestamp, False,)
             logger.debug(data)
             cursor = self._connection.cursor()
             result = cursor.execute(sql, data)
@@ -143,6 +147,3 @@ class Register:
         except Exception as e:
             logger.error(e)
             raise RegisterException(e)
-
-
-

@@ -44,9 +44,12 @@ class BotException(Exception):
 
 class Bot:
     @log.debug
-    def __init__(self, token, register: Register, pool_time=300):
+    def __init__(self, token, chat_id, thread_id, register: Register,
+                 pool_time=300):
         self._pool_time = pool_time
         self._telegram_client = TelegramClient(token)
+        self._chat_id = int(chat_id)
+        self._thread_id = int(thread_id)
         self._register = register
         self._read_config()
 
@@ -80,17 +83,26 @@ class Bot:
     @log.debug
     def _process_response(self, response):
         chat_id = None
+        thread_id = 0
         for message in response["result"]:
             try:
                 logger.debug(f"Message: {message}")
                 chat_id = message["message"]["chat"]["id"]
+                thread_id = message["message"]["message_thread_id"] if \
+                    "message_thread_id" in message["message"] else 0
+                if chat_id != self._chat_id or thread_id != self._thread_id:
+                    logger.debug(f"{chat_id} <=> {self._chat_id}")
+                    logger.debug(f"{thread_id} <=> {self._thread_id}")
+                    logger.debug("Me salgo")
+                    return
                 text = message["message"]["text"]
                 logger.debug(f"Text: {text}")
                 if text.startswith("/help") or text.startswith("/ayuda"):
                     self.process_help(message)
                 elif text.startswith("/participo"):
                     self.process_si(message)
-                elif text.startswith("/no-participo"):
+                elif text.startswith("/noparticipo") or \
+                        text.startswith("/no-participo"):
                     self.process_no(message)
                 elif text.startswith("/sortea"):
                     self.process_sortea(message)
@@ -100,25 +112,34 @@ class Bot:
                     raise BotException(msg)
             except Exception as exception:
                 if chat_id:
-                    self._telegram_client.send_message(str(exception), chat_id)
+                    logger.error(exception)
+                    self._telegram_client.send_message(str(exception), chat_id,
+                                                       thread_id)
 
     @log.debug
     def process_help(self, message):
         chat_id = message["message"]["chat"]["id"]
+        thread_id = message["message"]["message_thread_id"] if \
+            "message_thread_id" in message["message"] else 0
         strbuf = StringIO()
         strbuf.write(f"`/ayuda` {HAND} muestra esta ayuda\n")
         strbuf.write(f"`/participo` {HAND} te añade a la lista del sorteo\n")
-        strbuf.write(f"`/no-participo` {HAND} te quita de la lista del "
+        strbuf.write(f"`/noparticipo` {HAND} te quita de la lista del "
                      "sorteo\n")
         strbuf.write(f"`/sortea` {HAND} realiza el sorteo\n")
-        self._telegram_client.send_message(strbuf.getvalue(), chat_id)
+        self._telegram_client.send_message(strbuf.getvalue(), chat_id,
+                                           thread_id)
 
     @log.debug
     def process_si(self, message):
         user = message["message"]["from"]
-        chat = message["message"]["chat"]
-        alias = f"@{user['username']}" if user["username"] \
-                else f"{user['first_name']} {user['last_name']}"
+        chat_id = message["message"]["chat"]["id"]
+        thread_id = message["message"]["message_thread_id"] if \
+            "message_thread_id" in message["message"] else 0
+        username = user["username"] if "username" in user else None
+        first_name = user["first_name"] if "first_name" in user else ""
+        last_name = user["last_name"] if "first_name" in user else ""
+        alias = f"@{username}" if username else f"{first_name} {last_name}"
         if user["is_bot"]:
             message = f"`{alias}`, lo siento, los bot no pueden participar"
         else:
@@ -128,15 +149,19 @@ class Bot:
             except RegisterExists:
                 message = f"`{alias}`, ya estabas registrado para el sorteo!!"
             except Exception as exception:
-                message = str(exception)
-        self._telegram_client.send_message(message, chat["id"])
+                message = f"Error: {exception}"
+        self._telegram_client.send_message(message, chat_id, thread_id)
 
     @log.debug
     def process_no(self, message):
         user = message["message"]["from"]
-        chat = message["message"]["chat"]
-        alias = f"@{user['username']}" if user["username"] \
-                else f"{user['first_name']} {user['last_name']}"
+        chat_id = message["message"]["chat"]["id"]
+        thread_id = message["message"]["message_thread_id"] if \
+            "message_thread_id" in message["message"] else 0
+        username = user["username"] if "username" in user else None
+        first_name = user["first_name"] if "first_name" in user else ""
+        last_name = user["last_name"] if "first_name" in user else ""
+        alias = f"@{username}" if username else f"{first_name} {last_name}"
         if user["is_bot"]:
             message = f"`{alias}`, lo siento, los bot no pueden participar"
         else:
@@ -146,16 +171,20 @@ class Bot:
             except RegisterNotExists:
                 message = f"`{alias}`, no estabas registrado para el sorteo!!"
             except Exception as exception:
-                message = str(exception)
-        self._telegram_client.send_message(message, chat["id"])
+                message = f"Error: {exception}"
+        self._telegram_client.send_message(message, chat_id, thread_id)
 
     @log.debug
     def process_sortea(self, message):
-        chat = message["message"]["chat"]
         user = message["message"]["from"]
-        alias = f"@{user['username']}" if user["username"] \
-                else f"{user['first_name']} {user['last_name']}"
-        response = self._telegram_client.get_administrators(chat["id"])
+        chat_id = message["message"]["chat"]["id"]
+        thread_id = message["message"]["message_thread_id"] if \
+            "message_thread_id" in message["message"] else 0
+        username = user["username"] if "username" in user else None
+        first_name = user["first_name"] if "first_name" in user else ""
+        last_name = user["last_name"] if "first_name" in user else ""
+        alias = f"@{username}" if username else f"{first_name} {last_name}"
+        response = self._telegram_client.get_administrators(chat_id)
         admin_ids = [user["user"]["id"] for user in response["result"]]
         logger.debug(admin_ids)
         if user["id"] in admin_ids:
@@ -168,6 +197,4 @@ class Bot:
             message = f"El premiado es {seleccionado}"
         else:
             message = f"`{alias}`, solo los administradores pueden sortear!!!"
-        self._telegram_client.send_message(message, chat["id"])
-
-
+        self._telegram_client.send_message(message, chat_id, thread_id)
