@@ -21,67 +21,62 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import inspect
 import logging
 import time
+from pprint import pprint
 
 
-def debug(func):
-    logger = logging.getLogger(func.__module__)
-
-    def wrap(*args, **kwargs):
-        descriptor = f"{func.__module__}.{func.__name__}"
-        logger.debug(f"Start: {descriptor}")
-        if args:
-            logger.debug(f"Args: {args}")
-        if kwargs:
-            logger.debug(f"Kwargs: {kwargs}")
-        start = time.time()
-        result = func(*args, **kwargs)
-        elapsed = int((time.time() - start) * 1000)
-        if result:
-            logger.debug(f"Result: {result}")
-        logger.debug(f"End: {descriptor} ({elapsed})")
-        return result
-    return wrap
+def _logea(message, logger, level):
+    if level == logging.DEBUG:
+        logger.debug(message)
+    elif level == logging.INFO:
+        logger.info(message)
+    elif level == logging.WARN:
+        logger.warn(message)
+    elif level == logging.ERROR:
+        logger.error(message)
 
 
-def info(func):
-    logger = logging.getLogger(func.__module__)
+def logea(item, level):
+    stack = inspect.stack()
+    parentframe = stack[2][0]
+    module = inspect.getmodule(parentframe)
+    module_name = module.__name__ if module else __name__
+    logger = logging.getLogger(module_name)
 
-    def wrap(*args, **kwargs):
-        descriptor = f"{func.__module__}.{func.__name__}"
-        logger.info(f"start {descriptor}")
-        start = time.time()
-        result = func(*args, **kwargs)
-        elapsed = int((time.time() - start) * 1000)
-        logger.info(f"end {descriptor} ({elapsed})")
-        return result
-    return wrap
+    if inspect.isfunction(item):
+
+        def wrap(*args, **kwargs):
+            descriptor = f"{item.__module__}.{item.__name__}"
+            _logea(f"Start: {descriptor}", logger, level)
+            if args:
+                _logea(f"Args: {args}", logger, level)
+            if kwargs:
+                _logea(f"Kwargs: {kwargs}", logger, level)
+            start = time.time()
+            result = item(*args, **kwargs)
+            elapsed = int((time.time() - start) * 1000)
+            if result:
+                _logea(f"Result: {result}", logger, level)
+            _logea(f"End: {descriptor} ({elapsed})", logger, level)
+            return result
+        return wrap
+    else:
+        _logea(str(item), logger, level)
 
 
-def warn(func):
-    logger = logging.getLogger(func.__module__)
-
-    def wrap(*args, **kwargs):
-        descriptor = f"{func.__module__}.{func.__name__}"
-        logger.warn(f"start {descriptor}")
-        start = time.time()
-        result = func(*args, **kwargs)
-        elapsed = int((time.time() - start) * 1000)
-        logger.warn(f"end {descriptor} ({elapsed})")
-        return result
-    return wrap
+def debug(item):
+    return logea(item, logging.DEBUG)
 
 
-def error(func):
-    logger = logging.getLogger(func.__module__)
+def info(item):
+    return logea(item, logging.INFO)
 
-    def wrap(*args, **kwargs):
-        descriptor = f"{func.__module__}.{func.__name__}"
-        logger.error(f"start {descriptor}")
-        start = time.time()
-        result = func(*args, **kwargs)
-        elapsed = int((time.time() - start) * 1000)
-        logger.error(f"end {descriptor} ({elapsed})")
-        return result
-    return wrap
+
+def warn(item):
+    return logea(item, logging.WARN)
+
+
+def error(item):
+    return logea(item, logging.ERROR)

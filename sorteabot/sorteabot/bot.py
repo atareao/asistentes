@@ -106,6 +106,8 @@ class Bot:
                 elif text.startswith("/noparticipo") or \
                         text.startswith("/no-participo"):
                     self.process_no(message)
+                elif text.startswith("/estado"):
+                    self.process_status(message)
                 elif text.startswith("/sortea"):
                     self.process_sortea(message)
                 elif text.startswith("/"):
@@ -128,6 +130,8 @@ class Bot:
         strbuf.write(f"`/participo` {HAND} te añade a la lista del sorteo\n")
         strbuf.write(f"`/noparticipo` {HAND} te quita de la lista del "
                      "sorteo\n")
+        strbuf.write(f"`/estado` {HAND} te indica si estás o no estás"
+                     " registrado para el sorteo\n")
         strbuf.write(f"`/sortea` {HAND} realiza el sorteo\n")
         self._telegram_client.send_message(strbuf.getvalue(), chat_id,
                                            thread_id)
@@ -170,6 +174,30 @@ class Bot:
             try:
                 self._register.rm(message["message"])
                 message = f"Vaya, lo siento!, ya no participas `{alias}`"
+            except RegisterNotExists:
+                message = f"`{alias}`, no estabas registrado para el sorteo!!"
+            except Exception as exception:
+                message = f"Error: {exception}"
+        self._telegram_client.send_message(message, chat_id, thread_id)
+
+    @log.debug
+    def process_status(self, message):
+        user = message["message"]["from"]
+        chat_id = message["message"]["chat"]["id"]
+        thread_id = message["message"]["message_thread_id"] if \
+            "message_thread_id" in message["message"] else 0
+        username = user["username"] if "username" in user else None
+        first_name = user["first_name"] if "first_name" in user else ""
+        last_name = user["last_name"] if "last_name" in user else ""
+        alias = f"@{username}" if username else f"{first_name} {last_name}"
+        if user["is_bot"]:
+            message = f"`{alias}`, lo siento, los bot no pueden participar"
+        else:
+            try:
+                if self._register.exists(message["message"]):
+                    message = f"Estás registrado, `{alias}`"
+                else:
+                    message = f"NO estás registrado, `{alias}`"
             except RegisterNotExists:
                 message = f"`{alias}`, no estabas registrado para el sorteo!!"
             except Exception as exception:
