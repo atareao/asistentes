@@ -24,7 +24,6 @@
 import inspect
 import logging
 import time
-from pprint import pprint
 
 
 def _logea(message, logger, level):
