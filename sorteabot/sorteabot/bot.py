@@ -110,6 +110,8 @@ class Bot:
                     self.process_status(message)
                 elif text.startswith("/sortea"):
                     self.process_sortea(message)
+                elif text.startswith("/cuenta"):
+                    self.process_count(message)
                 elif text.startswith("/"):
                     command = text.split(" ")[0]
                     msg = f"The command {command} is not implemented"
@@ -132,6 +134,7 @@ class Bot:
                      "sorteo\n")
         strbuf.write(f"`/estado` {HAND} te indica si estás o no estás"
                      " registrado para el sorteo\n")
+        strbuf.write(f"`/cuenta` {HAND} muestra el número de participantes\n")
         strbuf.write(f"`/sortea` {HAND} realiza el sorteo\n")
         self._telegram_client.send_message(strbuf.getvalue(), chat_id,
                                            thread_id)
@@ -202,6 +205,18 @@ class Bot:
                 message = f"`{alias}`, no estabas registrado para el sorteo!!"
             except Exception as exception:
                 message = f"Error: {exception}"
+        self._telegram_client.send_message(message, chat_id, thread_id)
+
+    @log.debug
+    def process_count(self, message):
+        chat_id = message["message"]["chat"]["id"]
+        thread_id = message["message"]["message_thread_id"] if \
+            "message_thread_id" in message["message"] else 0
+        participantes = self._register.count()
+        if participantes and participantes[0] > 0:
+            message = f"Número de participantes: {participantes[0]}"
+        else:
+            message = "Todavía no hay ningún participante!!!"
         self._telegram_client.send_message(message, chat_id, thread_id)
 
     @log.debug

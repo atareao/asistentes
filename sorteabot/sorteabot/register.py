@@ -25,9 +25,6 @@ import log
 import logging
 import sqlite3
 
-"""
-from': {'id': 3970104, 'is_bot': False, 'first_name': 'atareao', 'last_name': '🦀🐍🐋🦭🐧', 'username': 'atareao', 'language_code': 'es'}, 'chat': {'id': -1001923145772, 'title': 'atareao_curso', 'username': 'atareao_curso', 'type': 'supergroup'}, 'date': 1699419110, 'text': '/participo', 'entities': [{'offset': 0, 'length': 10, 'type': 'bot_command'}]}})
-"""
 
 PARTICIPANTES = """
     CREATE TABLE IF NOT EXISTS participantes(
@@ -77,6 +74,17 @@ class Register:
             cursor = self._connection.cursor()
             res = cursor.execute(sql, data)
             return res.fetchall()
+        except Exception as e:
+            raise RegisterException(e)
+
+    @log.debug
+    def count(self):
+        try:
+            sql = "SELECT count(1) FROM participantes WHERE premiado = ?"
+            data = (False,)
+            cursor = self._connection.cursor()
+            res = cursor.execute(sql, data)
+            return res.fetchone()
         except Exception as e:
             raise RegisterException(e)
 
