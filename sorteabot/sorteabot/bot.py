@@ -29,12 +29,14 @@ import os
 import random
 from telegram import TelegramClient
 from register import Register, RegisterExists, RegisterNotExists
+from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
 
 CURDIR = os.path.realpath(os.path.dirname(__file__))
 CONFIG = os.path.join(CURDIR, "config.json")
+MAXDATE = datetime(2023, 12, 2, 23, 59, 59)
 HAND = "👉"
 
 
@@ -112,6 +114,8 @@ class Bot:
                     self.process_sortea(message)
                 elif text.startswith("/cuenta"):
                     self.process_count(message)
+                elif text.startswith("/plazo"):
+                    self.process_plazo(message)
                 elif text.startswith("/"):
                     command = text.split(" ")[0]
                     msg = f"The command {command} is not implemented"
@@ -135,6 +139,7 @@ class Bot:
         strbuf.write(f"`/estado` {HAND} te indica si estás o no estás"
                      " registrado para el sorteo\n")
         strbuf.write(f"`/cuenta` {HAND} muestra el número de participantes\n")
+        strbuf.write(f"`/plazo` {HAND} muestra el plazo del sorteo\n")
         strbuf.write(f"`/sortea` {HAND} realiza el sorteo\n")
         self._telegram_client.send_message(strbuf.getvalue(), chat_id,
                                            thread_id)
@@ -151,6 +156,8 @@ class Bot:
         alias = f"@{username}" if username else f"{first_name} {last_name}"
         if user["is_bot"]:
             message = f"`{alias}`, lo siento, los bot no pueden participar"
+        elif datetime.now() > MAXDATE:
+            message = f"`{alias}`, el plazo para apuntarse terminó. Lo siento."
         else:
             try:
                 self._register.add(message["message"])
@@ -159,6 +166,23 @@ class Bot:
                 message = f"`{alias}`, ya estabas registrado para el sorteo!!"
             except Exception as exception:
                 message = f"Error: {exception}"
+        self._telegram_client.send_message(message, chat_id, thread_id)
+
+    @log.debug
+    def process_plazo(self, message):
+        user = message["message"]["from"]
+        chat_id = message["message"]["chat"]["id"]
+        thread_id = message["message"]["message_thread_id"] if \
+            "message_thread_id" in message["message"] else 0
+        username = user["username"] if "username" in user else None
+        first_name = user["first_name"] if "first_name" in user else ""
+        last_name = user["last_name"] if "last_name" in user else ""
+        alias = f"@{username}" if username else f"{first_name} {last_name}"
+        if user["is_bot"]:
+            message = f"`{alias}`, lo siento, los bot no pueden participar"
+        else:
+            fechamax = MAXDATE.strftime("el %d/%m/%Y a las %H:%M:%S")
+            message = f"`{alias}`, el plazo termina {fechamax}"
         self._telegram_client.send_message(message, chat_id, thread_id)
 
     @log.debug
@@ -173,6 +197,8 @@ class Bot:
         alias = f"@{username}" if username else f"{first_name} {last_name}"
         if user["is_bot"]:
             message = f"`{alias}`, lo siento, los bot no pueden participar"
+        elif datetime.now() > MAXDATE:
+            message = f"`{alias}`, el plazo terminó. Lo siento."
         else:
             try:
                 self._register.rm(message["message"])
