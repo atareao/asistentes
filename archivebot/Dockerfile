@@ -15,18 +15,16 @@ RUN echo "**** install Python ****" && \
             musl-dev~=1.2 \
             python3-dev~=3.11 \
             python3~=3.11 \
-            py3-pip~=23.3 && \
-    rm -rf /var/lib/apt/lists/* && \
-    echo "**** install Poetry ****" && \
-    pip install --no-cache-dir poetry==1.6.1
-
+            py3-pip~=23.3 \
+            poetry~=1.7 && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY pyproject.toml poetry.lock ./
 
 RUN echo "**** install Python dependencies ****" && \
-    poetry install --without dev --no-root && rm -rf $POETRY_CACHE_DIR
+    poetry install --no-root && rm -rf $POETRY_CACHE_DIR
 
 ###############################################################################
 ## Final image

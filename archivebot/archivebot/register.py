@@ -25,18 +25,14 @@ import log
 import logging
 import sqlite3
 
-
-PARTICIPANTES = """
-    CREATE TABLE IF NOT EXISTS participantes(
-        id INTEGER,
-        is_bot BOOLEAN,
-        first_name TEXT,
-        last_name TEXT,
-        username TEXT,
-        language_code TEXT,
-        chat_id INTEGER,
-        timestamp INTEGER,
-        premiado BOOLEAN
+CONVERSATIONS = """
+    CREATE TABLE IF NOT EXISTS conversations(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT DEFAULT "",
+        description TEXT DEFAULT "",
+        filename TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAM
     )
 """
 
@@ -62,17 +58,16 @@ class Register:
         self._connection = sqlite3.connect(db)
         try:
             cursor = self._connection.cursor()
-            cursor.execute(PARTICIPANTES)
+            cursor.execute(CONVERSATIONS)
         except Exception as e:
             raise RegisterException(e)
 
     @log.debug
     def list(self):
         try:
-            sql = "SELECT * FROM participantes WHERE premiado = ?"
-            data = (False,)
+            sql = "SELECT * FROM consersations"
             cursor = self._connection.cursor()
-            res = cursor.execute(sql, data)
+            res = cursor.execute(sql)
             return res.fetchall()
         except Exception as e:
             raise RegisterException(e)
@@ -80,11 +75,22 @@ class Register:
     @log.debug
     def count(self):
         try:
-            sql = "SELECT count(1) FROM participantes WHERE premiado = ?"
-            data = (False,)
+            sql = "SELECT count(1) FROM conversations"
             cursor = self._connection.cursor()
-            res = cursor.execute(sql, data)
+            res = cursor.execute(sql)
             return res.fetchone()
+        except Exception as e:
+            raise RegisterException(e)
+
+    @log.debug
+    def add_filename(self, filename):
+        try:
+            sql = "INSERT INTO consersations (filename) VALUES (?)"
+            data = (filename,)
+            cursor = self._connection.cursor()
+            result = cursor.execute(sql, data)
+            self._connection.commit()
+            return result
         except Exception as e:
             raise RegisterException(e)
 
